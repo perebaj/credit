@@ -32,6 +32,7 @@ func TestRFClient_Fetch(t *testing.T) {
 		}
 
 		w.WriteHeader(http.StatusOK)
+		_, _ = w.Write([]byte(`{"test": "test"}`))
 	}))
 
 	defer server.Close()
@@ -41,6 +42,6 @@ func TestRFClient_Fetch(t *testing.T) {
 
 	_, err := c.Fetch("123456789", "987654321")
 	if err != nil {
-		t.Fatalf("could not fetch data from Receita Federal: %v", err)
+		t.Errorf("expected no error, got %v", err)
 	}
 }
