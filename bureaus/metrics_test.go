@@ -20,6 +20,7 @@ func TestMetrics(t *testing.T) {
 		t.Fatalf("error gathering metrics: %v", err)
 	}
 
+	//Validate if the registry has the metrics that were set in the MustRegistryBureauMetrics function
 	bureauCounterOK := false
 	bureauDurationOK := false
 	for _, metric := range m {
