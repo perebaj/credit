@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"time"
 )
 
 // Empresa is a struct that represents a company in the Receita Federal.
@@ -110,6 +111,8 @@ type RFClient struct {
 	URL    string
 	// OAuth2 access token
 	Token string
+	// recordMetrics is a helper function to instrument requests that are made to the Receita Federal API.
+	recordMetrics func(statusCode string, timer time.Time)
 }
 
 // NewRFClient creates a new client for the Receita Federal API.
@@ -117,26 +120,31 @@ type RFClient struct {
 // This initialization contains the base URL for the Receita Federal API.
 func NewRFClient(client *http.Client, token string) RFClient {
 	return RFClient{
-		Client: client,
-		URL:    "https://apigateway.conectagov.estaleiro.serpro.gov.br",
-		Token:  token,
+		Client:        client,
+		URL:           "https://apigateway.conectagov.estaleiro.serpro.gov.br",
+		Token:         token,
+		recordMetrics: recordMetrics,
 	}
 }
 
 // Fetch retrieves information about a company from the Receita Federal.
 // This fetch retrieves detailed information about a company based on its CNPJ.
 func (c RFClient) Fetch(cnpj string, cpf string) (Empresa, error) {
-	req, err := http.NewRequest(http.MethodGet, fmt.Sprintf("%s/api-cnpj-empresa/v2/empresa/%s", c.URL, cnpj), nil)
+	timer := time.Now()
+
+	url := fmt.Sprintf("%s/api-cnpj-empresa/v2/empresa/%s", c.URL, cnpj)
+	req, err := http.NewRequest(http.MethodGet, url, nil)
 	if err != nil {
-		return Empresa{}, fmt.Errorf("could not create request to Receita Federal: %w", err)
+		return Empresa{}, fmt.Errorf("could not create request to Receita Federal: %w. Url: %s", err, url)
 	}
 
-	req.Header.Set("Authorization", fmt.Sprintf("Bearer %s", c.Token))
-	req.Header.Set("x-cpf-usuario", cpf)
+	req.Header.Add("Authorization", fmt.Sprintf("Bearer %s", c.Token))
+	req.Header.Add("x-cpf-usuario", cpf)
+	req.Header.Add("accept", "application/json")
 
 	resp, err := c.Client.Do(req)
 	if err != nil {
-		return Empresa{}, fmt.Errorf("could not get data from Receita Federal: %w", err)
+		return Empresa{}, fmt.Errorf("could not get data from Receita Federal: %w. Url: %s", err, url)
 	}
 
 	defer func() {
@@ -144,13 +152,24 @@ func (c RFClient) Fetch(cnpj string, cpf string) (Empresa, error) {
 	}()
 
 	if resp.StatusCode != http.StatusOK {
-		return Empresa{}, fmt.Errorf("unexpected status code from Receita Federal: %d", resp.StatusCode)
+		recordMetrics(resp.Status, timer)
+		return Empresa{}, fmt.Errorf("unexpected status code from Receita Federal: %d. Url: %s", resp.StatusCode, url)
 	}
 
 	var empresa Empresa
 	if err := json.NewDecoder(resp.Body).Decode(&empresa); err != nil {
+		recordMetrics(resp.Status, timer)
 		return Empresa{}, fmt.Errorf("could not decode data from Receita Federal: %w", err)
 	}
-
+	recordMetrics(resp.Status, timer)
 	return empresa, nil
+}
+
+// recordMetrics is a helper function to instrument requests that are made to the Receita Federal API.
+func recordMetrics(statusCode string, timer time.Time) {
+	duration := time.Since(timer).Seconds()
+	// Record the duration of the request.
+	bureauDuration.WithLabelValues(statusCode, "receita_federal").Observe(duration)
+	// Record the request.
+	bureauCouter.WithLabelValues(statusCode, "receita_federal").Inc()
 }
