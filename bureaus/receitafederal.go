@@ -8,6 +8,8 @@ import (
 	"time"
 )
 
+const bureauName = "receita_federal"
+
 // Empresa is a struct that represents a company in the Receita Federal.
 type Empresa struct {
 	NI                    string                `json:"ni"`
@@ -143,7 +145,7 @@ func (c RFClient) Fetch(cnpj string, cpf string) (Empresa, error) {
 	if err != nil {
 		return Empresa{}, fmt.Errorf("could not get data from Receita Federal: %w. Url: %s", err, url)
 	}
-	recordMetrics(resp.Status, timer)
+	recordMetrics(resp.Status, timer, bureauName)
 
 	defer func() {
 		_ = resp.Body.Close()
@@ -161,10 +163,10 @@ func (c RFClient) Fetch(cnpj string, cpf string) (Empresa, error) {
 }
 
 // recordMetrics is a helper function to instrument requests that are made to the Receita Federal API.
-func recordMetrics(statusCode string, timer time.Time) {
+func recordMetrics(statusCode string, timer time.Time, bureauName string) {
 	duration := time.Since(timer).Seconds()
 	// Record the duration of the request.
-	bureauDuration.WithLabelValues(statusCode, "receita_federal").Observe(duration)
+	bureauDuration.WithLabelValues(statusCode, bureauName).Observe(duration)
 	// Record the request.
-	bureauCounter.WithLabelValues(statusCode, "receita_federal").Inc()
+	bureauCounter.WithLabelValues(statusCode, bureauName).Inc()
 }
