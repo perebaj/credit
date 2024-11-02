@@ -18,13 +18,13 @@ func MustRegistryBureauMetrics(registry prometheus.Registerer) {
 	prometheus.WrapRegistererWith(prometheus.Labels{"serviceName": svcName}, registry).MustRegister(
 		collectors.NewGoCollector(),
 		collectors.NewProcessCollector(collectors.ProcessCollectorOpts{}),
-		bureauCouter,
+		bureauCounter,
 		bureauDuration,
 	)
 }
 
 var (
-	bureauCouter = prometheus.NewCounterVec(prometheus.CounterOpts{
+	bureauCounter = prometheus.NewCounterVec(prometheus.CounterOpts{
 		Name: "bureau_requests_total",
 		Help: "Total of bureau requests",
 	}, []string{"status_code", "bureau_name"})

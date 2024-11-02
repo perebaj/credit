@@ -171,5 +171,5 @@ func recordMetrics(statusCode string, timer time.Time) {
 	// Record the duration of the request.
 	bureauDuration.WithLabelValues(statusCode, "receita_federal").Observe(duration)
 	// Record the request.
-	bureauCouter.WithLabelValues(statusCode, "receita_federal").Inc()
+	bureauCounter.WithLabelValues(statusCode, "receita_federal").Inc()
 }
