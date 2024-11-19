@@ -3,6 +3,12 @@ GOLANG_VULCHECK_VERSION=v1.1.3
 
 export FIRESTORE_EMULATOR_HOST=0.0.0.0:8087
 
+## Generate the mocks for the tests
+.PHONY: generate-mocks
+generate-mocks:
+	@echo "Generating mocks..."
+	go generate ./...
+
 ## run all tests. Usage `make test` or `make test testcase="TestFunctionName"` to run an isolated tests
 .PHONY: test
 test:

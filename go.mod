@@ -1,11 +1,12 @@
 module github.com/perebaj/credit
 
-go 1.23.0
+go 1.23.3
 
 require (
 	cloud.google.com/go/firestore v1.17.0
 	github.com/prometheus/client_golang v1.20.5
 	github.com/stretchr/testify v1.9.0
+	go.uber.org/mock v0.5.0
 )
 
 require (
