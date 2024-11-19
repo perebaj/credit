@@ -1,6 +1,8 @@
 GOLANGCI_LINT_VERSION=v1.61.0
 GOLANG_VULCHECK_VERSION=v1.1.3
 
+export FIRESTORE_EMULATOR_HOST=0.0.0.0:8087
+
 ## run all tests. Usage `make test` or `make test testcase="TestFunctionName"` to run an isolated tests
 .PHONY: test
 test:
@@ -32,6 +34,18 @@ integration-test:
 	else \
 		go test ./... -tags integration -timeout 10s; \
 	fi
+
+## Start the development server
+.PHONY: dev/start
+dev/start:
+	@echo "Starting the development server..."
+	@docker-compose up -d
+
+## Stop the development server
+.PHONY: dev/stop
+dev/stop:
+	@echo "Stopping the development server..."
+	@docker-compose down
 
 ## Display help for all targets
 .PHONY: help
