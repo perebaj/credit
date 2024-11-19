@@ -3,29 +3,44 @@ package http
 
 import (
 	"context"
-	"encoding/json"
 	"net/http"
 
 	"github.com/perebaj/credit"
+	"github.com/perebaj/credit/bureaus"
 )
 
-//go:generate mockgen -source http.go -destination ../mock/http_mock.go -package mock
+//go:generate mockgen -source company.go -destination ../mock/http_mock.go -package mock
 
 // CompanyService is the interface that wraps the firestore storage methods.
 type CompanyService interface {
 	SaveCompany(ctx context.Context, company credit.Company) error
 }
 
+// BureauService is the interface that wraps the methods to fetch data from the bureaus.
+type BureauService interface {
+	Fetch(cnpj string, cpf string) (bureaus.Empresa, error)
+}
+
 // Handler is the struct that gather all the implementions required for the http handlers.
 type Handler struct {
 	CompanyService CompanyService
+	BureauService  BureauService
 }
 
 func (h *Handler) saveCompany(w http.ResponseWriter, r *http.Request) {
-	var company credit.Company
-	if err := json.NewDecoder(r.Body).Decode(&company); err != nil {
-		http.Error(w, err.Error(), http.StatusBadRequest)
+	//read cnpj and cpf from request
+	cnpj := r.URL.Query().Get("cnpj")
+	cpf := r.URL.Query().Get("cpf")
+
+	empresa, err := h.BureauService.Fetch(cnpj, cpf)
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
+	}
+
+	company := credit.Company{
+		ID:   cnpj,
+		Name: empresa.NomeEmpresarial,
 	}
 
 	if err := h.CompanyService.SaveCompany(r.Context(), company); err != nil {
@@ -37,8 +52,8 @@ func (h *Handler) saveCompany(w http.ResponseWriter, r *http.Request) {
 }
 
 // NewHandler initializes a new http.Handler with the provided CompanyService.
-func NewHandler(companyService CompanyService) *Handler {
-	return &Handler{CompanyService: companyService}
+func NewHandler(companyService CompanyService, bureauService BureauService) *Handler {
+	return &Handler{CompanyService: companyService, BureauService: bureauService}
 }
 
 // Router returns a new http.ServeMux with all the routes for the credit service.
